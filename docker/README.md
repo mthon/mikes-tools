@@ -1,0 +1,1 @@
+This docker file was prepared to run these scripts in CyVerse Discovery Environment.
