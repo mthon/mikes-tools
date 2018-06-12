@@ -17,7 +17,7 @@ Provide two files of BLAST search results: proteome A vs proteome B and proteome
 
 Converts the output from OrthoFinder to PanGP format for pan-genome analysis.
 
-##get_branch_lengths.pl
+## get_branch_lengths.pl
 
 Compute branch lengths in a phyogenetic tree (newick format) from the root to each tip.
 
