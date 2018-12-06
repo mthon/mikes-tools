@@ -24,3 +24,11 @@ Compute branch lengths in a phyogenetic tree (newick format) from the root to ea
 ## scale_tree.py
 
 Provide a phylogenetic tree in nexus format and a numeric value and outputs a new tree with each branch multiplied by the numeric value.
+
+## microbiome/split_seqs.py
+
+
+A script to demultiplex bacterial and fungal reads based on the PCR primers used to amplify them. 
+
+## prep4itol/
+Collapse frequency tables from QIIME2 and prepare files for iTol.
