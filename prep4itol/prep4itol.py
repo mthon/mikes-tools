@@ -34,23 +34,22 @@ def collapse_table(table, taxfile, out_dir):
     freq_out = basename + '-collapsed-rel-freq.qza'
 
     #pdb.set_trace()
-    coll_com ='%s && qiime taxa collapse --i-table %s --i-taxonomy %s --p-level 7 --o-collapsed-table %s/%s' %(qiime2, table, taxfile, out_dir, col_out)
-    check_call(coll_com, shell=True)
+    coll_com ='qiime taxa collapse --i-table %s --i-taxonomy %s --p-level 7 --o-collapsed-table %s/%s' %(table, taxfile, out_dir, col_out)
+    check_call(coll_com, shell=True, executable='/bin/bash')
 
-    freq_com = '%s && qiime feature-table relative-frequency --i-table %s/%s --o-relative-frequency-table %s/%s' % (qiime2, out_dir, col_out, out_dir, freq_out)
-    check_call(freq_com, shell=True)
+    freq_com = 'qiime feature-table relative-frequency --i-table %s/%s --o-relative-frequency-table %s/%s' % (out_dir, col_out, out_dir, freq_out)
+    check_call(freq_com, shell=True, executable='/bin/bash')
 
-    exp_com = '%s && qiime tools export --input-path %s/%s --output-path %s' %(qiime2, out_dir, freq_out, out_dir)
-    check_call(exp_com, shell=True)
+    exp_com = 'qiime tools export --input-path %s/%s --output-path %s' %(out_dir, freq_out, out_dir)
+    check_call(exp_com, shell=True, executable='/bin/bash')
 
     # CSS normalize the table
-    #norm_com = '%s && normalize_table.py -i %s/feature-table.biom -a CSS -o %s/CSS_normalized_table.biom'  % (qiime1, out_dir, out_dir)
-    #pdb.set_trace()
-    norm_com = 'Rscript %s/css_normalize.R %s/feature-table.biom %s/CSS_normalized_table.biom' % (sys.path[0], out_dir, out_dir)
-    check_call(norm_com, shell=True)
+
+    norm_com = '%s && Rscript %s/css_normalize.R %s/feature-table.biom %s/CSS_normalized_table.biom' % (exitqiime2, sys.path[0], out_dir, out_dir)
+    check_call(norm_com, shell=True, executable='/bin/bash')
 
     biom_com = '%s && biom convert -i %s/CSS_normalized_table.biom -o %s/feature-table-collapsed-rel-freq.tsv --to-tsv' % (qiime2, out_dir, out_dir)
-    check_call(biom_com, shell=True)
+    check_call(biom_com, shell=True, executable='/bin/bash')
 
     tsvfile = open(out_dir + '/feature-table-collapsed-rel-freq.tsv')
     out_tsvfile = open(out_dir + '/feature-table-collapsed-rel-freq-renamed.txt', 'w')
@@ -86,21 +85,43 @@ def rename(tax):
         else:
             if len(taxalist[6]) > 3:
                 # we have a species name
+
                 name = taxalist[5] + '_' + taxalist[6]
+            elif taxalist[3] == '__':
+                name = taxalist[5] + ' unclassified species'
             else:
+                #pdb.set_trace()
                 name = taxalist[5] + '__spp'
 
     else:
         name = taxalist[-1]
-    #pdb.set_trace()
+
+    if name in encountered_names:
+
+        if len(name.split(':')) >1:
+
+            ind = int(name.split(':')[1])
+
+            name_list = list(name)
+            name_list[-1] = ':' + str(ind+1)
+            new_name = "".join(name_list)
+            encountered_names.append(new_name)
+            name = new_name
+            #pdb.set_trace()
+        else:
+            name = name + ':1'
+            encountered_names.append(name)
+    else:
+        encountered_names.append(name)
+
     return name
 
 def export_seqs(seqqza, taxqza, out_dir):
 
     outseqs_f = open(out_dir + '/rep-seqs-collapsed-renamed.fasta', 'w')
 
-    seq_com = '%s && qiime tools export --input-path %s --output-path %s' %(qiime2, seqqza, out_dir)
-    check_call(seq_com, shell=True)
+    seq_com = 'qiime tools export --input-path %s --output-path %s' %(seqqza, out_dir)
+    check_call(seq_com, shell=True, executable='/bin/bash')
 
     fasta_f = open(out_dir + '/dna-sequences.fasta')
 
@@ -113,8 +134,8 @@ def export_seqs(seqqza, taxqza, out_dir):
         if not sequence: break
         seqdict[seqname] = sequence
 
-    tax_com = '%s && qiime tools export --input-path %s --output-path %s' %(qiime2, taxqza, out_dir)
-    check_call(tax_com, shell=True)
+    tax_com = 'qiime tools export --input-path %s --output-path %s' %(taxqza, out_dir)
+    check_call(tax_com, shell=True, executable='/bin/bash')
 
     taxtab = open(out_dir + '/taxonomy.tsv')
     namedict = dict()
@@ -137,7 +158,11 @@ def export_seqs(seqqza, taxqza, out_dir):
 if __name__ == "__main__":
     options = parse_cli()
 
-    qiime2 = "source activate qiime2-2018.8"
+    qiime2 = "source activate qiime2-2018.11"
+
+    exitqiime2 = "source deactivate"
+
+    encountered_names = list()
 
     try:
         os.stat(options.out_dir)
@@ -145,5 +170,5 @@ if __name__ == "__main__":
         os.mkdir(options.out_dir)
 
     coll = collapse_table(options.table_file, options.tax_file, options.out_dir)
-
+    encountered_names = list()
     export_seqs(options.seq_file, options.tax_file, options.out_dir)
